@@ -1,0 +1,225 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/tleunen/babel-plugin-module-alias#readme">babel-plugin-module-alias (v1.6.0)</a>
+</h1>
+<h4>Babel plugin to rewrite the path in require() and ES6 import</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.babel-plugin-module-alias">module babel-plugin-module-alias</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.babel-plugin-module-alias.default">
+            function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>default
+            <span class="apidocSignatureSpan">(_ref)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.babel-plugin-module-alias.mapModule">
+            function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>mapModule
+            <span class="apidocSignatureSpan">(source, file, filesMap)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.babel-plugin-module-alias.mapToRelative">
+            function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>mapToRelative
+            <span class="apidocSignatureSpan">(currentFile, module)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.babel-plugin-module-alias" id="apidoc.module.babel-plugin-module-alias">module babel-plugin-module-alias</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.babel-plugin-module-alias.default" id="apidoc.element.babel-plugin-module-alias.default">
+        function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>default
+        <span class="apidocSignatureSpan">(_ref)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">default = function (_ref) {
+    var t = _ref.types;
+
+    function transformRequireCall(nodePath, state, filesMap) {
+        if (!t.isIdentifier(nodePath.node.callee, { name: 'require' }) &amp;&amp; !(t.isMemberExpression(nodePath.node.callee) &amp;&amp; t.isIdentifier
+(nodePath.node.callee.object, { name: 'require' }))) {
+            return;
+        }
+
+        var moduleArg = nodePath.node.arguments[0];
+        if (moduleArg &amp;&amp; moduleArg.type === 'StringLiteral') {
+            var modulePath = mapModule(moduleArg.value, state.file.opts.filename, filesMap);
+            if (modulePath) {
+                nodePath.replaceWith(t.callExpression(nodePath.node.callee, [t.stringLiteral(modulePath)]));
+            }
+        }
+    }
+
+    function transformImportCall(nodePath, state, filesMap) {
+        var moduleArg = nodePath.node.source;
+        if (moduleArg &amp;&amp; moduleArg.type === 'StringLiteral') {
+            var modulePath = mapModule(moduleArg.value, state.file.opts.filename, filesMap);
+            if (modulePath) {
+                nodePath.replaceWith(t.importDeclaration(nodePath.node.specifiers, t.stringLiteral(modulePath)));
+            }
+        }
+    }
+
+    return {
+        visitor: {
+            CallExpression: {
+                exit: function exit(nodePath, state) {
+                    return transformRequireCall(nodePath, state, createFilesMap(state));
+                }
+            },
+            ImportDeclaration: {
+                exit: function exit(nodePath, state) {
+                    return transformImportCall(nodePath, state, createFilesMap(state));
+                }
+            }
+        }
+    };
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.babel-plugin-module-alias.mapModule" id="apidoc.element.babel-plugin-module-alias.mapModule">
+        function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>mapModule
+        <span class="apidocSignatureSpan">(source, file, filesMap)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function mapModule(source, file, filesMap) {
+    var moduleSplit = source.split('/');
+
+    var src = void 0;
+    while (moduleSplit.length) {
+        var m = moduleSplit.join('/');
+        if (filesMap.hasOwnProperty(m)) {
+            src = filesMap[m];
+            break;
+        }
+        moduleSplit.pop();
+    }
+
+    if (!moduleSplit.length) {
+        // no mapping available
+        return null;
+    }
+
+    var newPath = source.replace(moduleSplit.join('/'), src);
+    return mapToRelative(file, newPath);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.babel-plugin-module-alias.mapToRelative" id="apidoc.element.babel-plugin-module-alias.mapToRelative">
+        function <span class="apidocSignatureSpan">babel-plugin-module-alias.</span>mapToRelative
+        <span class="apidocSignatureSpan">(currentFile, module)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function mapToRelative(currentFile, module) {
+    var from = path.dirname(currentFile);
+    var to = path.normalize(module);
+
+    from = resolve(from);
+    to = resolve(to);
+
+    var moduleMapped = path.relative(from, to);
+
+    moduleMapped = toPosixPath(moduleMapped);
+
+    // Support npm modules instead of directories
+    if (moduleMapped.indexOf('npm:') !== -1) {
+        var _moduleMapped$split = moduleMapped.split('npm:');
+
+        var _moduleMapped$split2 = _slicedToArray(_moduleMapped$split, 2);
+
+        var npmModuleName = _moduleMapped$split2[1];
+
+        return npmModuleName;
+    }
+
+    if (moduleMapped[0] !== '.') moduleMapped = './' + moduleMapped;
+
+    return moduleMapped;
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
